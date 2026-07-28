@@ -1,0 +1,39 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Claude Code / AI agent 本地工作文件
+.claude/
+
+# 内部工作文档(不进开源仓库,仅本地保留)
+/CLAUDE.md
+/quickcapture-spec.md
+/docs/
+
+# 本地数据库(数据不进仓库,防误提交)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
