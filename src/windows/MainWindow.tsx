@@ -95,16 +95,16 @@ function ShortcutSetting({ s }: { s: LangStrings }) {
   }, [recording]);
 
   const btn =
-    'text-xs py-1 px-2 rounded text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-40 disabled:hover:bg-transparent';
+    'text-xs py-1 px-2 rounded text-fg-muted hover:text-fg-2 hover:bg-selected transition-colors disabled:opacity-40 disabled:hover:bg-transparent';
 
   return (
     <div className="px-3 mb-3">
-      <p className="text-xs text-gray-400 dark:text-gray-500 mb-1.5">{s.sidebar_shortcut_label}</p>
-      <p className="text-xs text-gray-600 dark:text-gray-300 mb-1">{accel ? formatAccel(accel) : '…'}</p>
+      <p className="text-xs text-fg-faint mb-1.5">{s.sidebar_shortcut_label}</p>
+      <p className="text-xs text-fg-2 mb-1">{accel ? formatAccel(accel) : '…'}</p>
       {msg && (
         <p
           className={`text-xs mb-1 ${
-            msg.ok ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'
+            msg.ok ? 'text-ok' : 'text-danger'
           }`}
         >
           {msg.text}
@@ -118,7 +118,7 @@ function ShortcutSetting({ s }: { s: LangStrings }) {
             setRecording((v) => !v);
           }}
           disabled={busy}
-          className={`${btn} ${recording ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100' : ''}`}
+          className={`${btn} ${recording ? 'bg-selected text-fg' : ''}`}
         >
           {recording ? s.sidebar_shortcut_recording : s.sidebar_shortcut_change}
         </button>
@@ -273,11 +273,11 @@ export default function MainWindow() {
   ];
 
   return (
-    <div className="flex h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <div className="flex h-screen bg-canvas text-fg">
       {/* 左侧边栏 */}
-      <aside className="w-44 flex-shrink-0 border-r border-gray-100 dark:border-gray-800 flex flex-col py-4">
+      <aside className="w-44 flex-shrink-0 bg-sidebar border-r border-line-soft flex flex-col py-4">
         <div className="px-4 mb-6">
-          <span className="text-base font-semibold tracking-tight text-gray-900 dark:text-gray-100">Motif</span>
+          <span className="text-base font-semibold tracking-tight text-fg">Motif</span>
         </div>
 
         <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto">
@@ -290,8 +290,8 @@ export default function MainWindow() {
               }}
               className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
                 currentPage === key && (key !== 'all' || tagFilter === null)
-                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-medium'
-                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-gray-200'
+                  ? 'bg-selected text-fg font-medium shadow-[inset_2px_0_0_var(--color-primary)]'
+                  : 'text-fg-muted hover:bg-wash hover:text-fg-2'
               }`}
             >
               {label}
@@ -300,7 +300,7 @@ export default function MainWindow() {
 
           {tags.length > 0 && (
             <div className="pt-3">
-              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wider px-3 mb-1">
+              <p className="text-xs text-fg-faint uppercase tracking-wider px-3 mb-1">
                 {s.sidebar_tags}
               </p>
               {tags.map((tag) => (
@@ -309,18 +309,18 @@ export default function MainWindow() {
                     onClick={() => { setTagFilter(tag.id); setPage('all'); }}
                     className={`w-full text-left px-3 py-1.5 rounded-md text-sm flex items-center transition-colors ${
                       tagFilter === tag.id
-                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-medium'
-                        : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-gray-200'
+                        ? 'bg-selected text-fg font-medium shadow-[inset_2px_0_0_var(--color-primary)]'
+                        : 'text-fg-muted hover:bg-wash hover:text-fg-2'
                     }`}
                   >
                     <span className="flex-1 truncate">#{tag.name}</span>
-                    <span className="text-xs text-gray-300 dark:text-gray-600 ml-1 flex-shrink-0 opacity-100 group-hover:opacity-0 transition-opacity">
+                    <span className="text-xs text-fg-faint ml-1 flex-shrink-0 opacity-100 group-hover:opacity-0 transition-opacity">
                       {tag.count}
                     </span>
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); handleDeleteTag(tag); }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-400 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity px-1"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-fg-faint hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity px-1"
                     title={s.tag_delete_title}
                   >
                     ×
@@ -332,14 +332,14 @@ export default function MainWindow() {
         </nav>
 
         {/* 底部：设置按钮 + 弹出面板 */}
-        <div className="px-2 pt-3 border-t border-gray-100 dark:border-gray-800 mt-2">
+        <div className="px-2 pt-3 border-t border-line-soft mt-2">
           <div className="relative" ref={settingsRef}>
             {/* 设置弹出面板（向上弹出） */}
             {isSettingsOpen && (
-              <div className="absolute bottom-full left-0 mb-1 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg dark:shadow-gray-900/50 py-3 z-30">
+              <div className="absolute bottom-full left-0 mb-1 w-56 bg-surface border border-line rounded-lg shadow-lg dark:shadow-black/40 py-3 z-30">
                 {/* 主题 */}
                 <div className="px-3 mb-3">
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-1.5">{s.sidebar_theme_label}</p>
+                  <p className="text-xs text-fg-faint mb-1.5">{s.sidebar_theme_label}</p>
                   <div className="flex gap-0.5">
                     {THEMES.map(({ value, label }) => (
                       <button
@@ -347,8 +347,8 @@ export default function MainWindow() {
                         onClick={() => setTheme(value)}
                         className={`flex-1 text-xs py-1 rounded transition-colors ${
                           theme === value
-                            ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 font-medium'
-                            : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            ? 'bg-fg text-canvas font-medium'
+                            : 'text-fg-muted hover:bg-selected'
                         }`}
                       >
                         {label}
@@ -359,7 +359,7 @@ export default function MainWindow() {
 
                 {/* 语言 */}
                 <div className="px-3 mb-3">
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-1.5">{s.sidebar_lang_label}</p>
+                  <p className="text-xs text-fg-faint mb-1.5">{s.sidebar_lang_label}</p>
                   <div className="flex gap-0.5">
                     {LANGS.map(({ value, label }) => (
                       <button
@@ -367,8 +367,8 @@ export default function MainWindow() {
                         onClick={() => setLang(value)}
                         className={`flex-1 text-xs py-1 rounded transition-colors ${
                           lang === value
-                            ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 font-medium'
-                            : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            ? 'bg-fg text-canvas font-medium'
+                            : 'text-fg-muted hover:bg-selected'
                         }`}
                       >
                         {label}
@@ -379,19 +379,19 @@ export default function MainWindow() {
 
                 {/* 数据目录 */}
                 <div className="px-3 mb-3">
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-1.5">{s.sidebar_datadir_label}</p>
+                  <p className="text-xs text-fg-faint mb-1.5">{s.sidebar_datadir_label}</p>
                   <p
-                    className="text-xs text-gray-600 dark:text-gray-300 break-all leading-snug mb-1"
+                    className="text-xs text-fg-2 break-all leading-snug mb-1"
                     title={dataDir}
                   >
                     {dataDir || '…'}
                   </p>
                   {dataDirMsg && (
-                    <p className="text-xs text-green-600 dark:text-green-400 mb-1">{dataDirMsg}</p>
+                    <p className="text-xs text-ok mb-1">{dataDirMsg}</p>
                   )}
                   <button
                     onClick={handleChangeDataDir}
-                    className="text-xs py-1 px-2 rounded text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    className="text-xs py-1 px-2 rounded text-fg-muted hover:text-fg-2 hover:bg-selected transition-colors"
                   >
                     {s.sidebar_datadir_change}
                   </button>
@@ -401,16 +401,16 @@ export default function MainWindow() {
                 <ShortcutSetting s={s} />
 
                 {/* 分隔线 */}
-                <div className="border-t border-gray-100 dark:border-gray-700 my-2" />
+                <div className="border-t border-line my-2" />
 
                 {/* 导出 */}
                 <div className="px-3">
                   {exportMsg && (
-                    <p className="text-xs text-green-600 dark:text-green-400 mb-1 text-center">{exportMsg}</p>
+                    <p className="text-xs text-ok mb-1 text-center">{exportMsg}</p>
                   )}
                   <button
                     onClick={handleExport}
-                    className="w-full text-left text-xs py-1.5 px-2 rounded text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    className="w-full text-left text-xs py-1.5 px-2 rounded text-fg-muted hover:text-fg-2 hover:bg-selected transition-colors"
                   >
                     {s.sidebar_export}
                   </button>
@@ -424,8 +424,8 @@ export default function MainWindow() {
               title={s.settings_label}
               className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs transition-colors ${
                 isSettingsOpen
-                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200'
-                  : 'text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300'
+                  ? 'bg-selected text-fg-2'
+                  : 'text-fg-faint hover:bg-wash hover:text-fg-muted'
               }`}
             >
               <GearIcon />
@@ -439,7 +439,7 @@ export default function MainWindow() {
       <main className="flex-1 flex flex-col overflow-hidden">
         <form
           onSubmit={(e) => { e.preventDefault(); doQuickAdd(); }}
-          className="px-6 py-3 border-b border-gray-100 dark:border-gray-800 flex gap-2"
+          className="px-6 py-3 border-b border-line-soft flex gap-2"
         >
           <input
             ref={inputRef}
@@ -452,12 +452,12 @@ export default function MainWindow() {
               }
             }}
             placeholder={s.quickadd_placeholder}
-            className="flex-1 text-sm border border-gray-200 dark:border-gray-700 rounded-md px-3 py-1.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-gray-400 dark:focus:border-gray-500 placeholder:text-gray-300 dark:placeholder:text-gray-600"
+            className="flex-1 text-sm border border-line rounded-md px-3 py-1.5 bg-surface text-fg focus:outline-none focus:border-line-strong placeholder:text-fg-ghost"
           />
           <button
             type="submit"
             disabled={!quickInput.trim()}
-            className="text-sm px-3 py-1.5 rounded-md bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 disabled:opacity-30 hover:bg-gray-700 dark:hover:bg-gray-300 transition-colors"
+            className="text-sm px-3 py-1.5 rounded-md bg-primary text-primary-fg disabled:opacity-30 hover:bg-primary/85 transition-colors"
           >
             {s.quickadd_button}
           </button>

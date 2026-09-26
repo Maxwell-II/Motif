@@ -1,2 +1,48 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* 语义颜色:组件只引用这些,换肤只改本文件 */
+@theme {
+  --color-canvas: #ffffff;      /* 主背景 */
+  --color-sidebar: #fafafa;     /* 侧边栏 */
+  --color-surface: #ffffff;     /* 输入框、弹出面板 */
+  --color-wash: #f3f3f4;        /* 悬停背景 */
+  --color-selected: #ebebec;    /* 选中背景 */
+  --color-line-soft: #f0f0f1;   /* 弱分隔线 */
+  --color-line: #e4e4e6;        /* 边框 */
+  --color-line-strong: #b8b8bc; /* 悬停/聚焦边框 */
+  --color-fg: #18181a;          /* 标题、主文字 */
+  --color-fg-2: #2a2a2d;        /* 正文 */
+  --color-fg-muted: #6e6e74;    /* 次要文字 */
+  --color-fg-faint: #a1a1a7;    /* 标签、时间 */
+  --color-fg-ghost: #d0d0d4;    /* 计数、占位符 */
+  --color-primary: #18181a;     /* 主按钮、当前导航指示 */
+  --color-primary-fg: #ffffff;
+  --color-accent: #4f5bd5;      /* 编辑框、标签筛选 */
+  --color-warn: #d97706;
+  --color-ok: #16a34a;
+  --color-danger: #ef4444;
+}
+
+.dark {
+  color-scheme: dark;
+  --color-canvas: #161617;
+  --color-sidebar: #111112;
+  --color-surface: #1e1e20;
+  --color-wash: #1f1f22;
+  --color-selected: #28282c;
+  --color-line-soft: #242427;
+  --color-line: #2e2e32;
+  --color-line-strong: #4a4a50;
+  --color-fg: #ececee;
+  --color-fg-2: #d4d4d8;
+  --color-fg-muted: #a1a1a7;
+  --color-fg-faint: #6d6d74;
+  --color-fg-ghost: #4a4a50;
+  --color-primary: #5e67d4;
+  --color-primary-fg: #ffffff;
+  --color-accent: #7c84ea;
+  --color-warn: #e0a84a;
+  --color-ok: #4ade80;
+  --color-danger: #f87171;
+}

@@ -105,7 +105,7 @@ export default function CaptureWindow() {
       className={`w-full h-full flex items-start px-3 py-3 border transition-colors duration-75 ${
         flash
           ? 'bg-emerald-50 dark:bg-emerald-950 border-emerald-300 dark:border-emerald-700'
-          : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700'
+          : 'bg-canvas border-line'
       }`}
     >
       <textarea
@@ -118,7 +118,7 @@ export default function CaptureWindow() {
         onKeyDown={handleKeyDown}
         placeholder={s.capture_placeholder}
         rows={1}
-        className="w-full resize-none border-0 outline-none bg-transparent text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 leading-relaxed"
+        className="w-full resize-none border-0 outline-none bg-transparent text-sm text-fg placeholder:text-fg-ghost leading-relaxed"
         style={{ minHeight: '24px', overflowY: 'auto' }}
       />
     </div>

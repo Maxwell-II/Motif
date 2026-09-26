@@ -18,13 +18,13 @@ export default function Overview() {
     <div className="p-6 max-w-2xl space-y-8">
       {/* ① P1 重点条目 */}
       <section>
-        <h3 className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
+        <h3 className="text-xs font-medium text-fg-faint uppercase tracking-wider mb-2">
           {s.overview_p1_title}
         </h3>
         {overviewItems.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">{s.overview_p1_empty}</p>
+          <p className="text-sm text-fg-faint py-4 text-center">{s.overview_p1_empty}</p>
         ) : (
-          <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="rounded-lg border border-line overflow-hidden">
             {overviewItems.map((item) => (
               <ItemRow
                 key={item.id}
@@ -39,25 +39,26 @@ export default function Overview() {
 
       {/* ② 收件箱提示 */}
       <section>
-        <h3 className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
+        <h3 className="text-xs font-medium text-fg-faint uppercase tracking-wider mb-2">
           {s.overview_inbox_title}
         </h3>
         {inboxCount > 0 ? (
           <button
             onClick={() => setPage('inbox')}
-            className="w-full text-left px-4 py-3 rounded-lg bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 text-sm text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900 transition-colors"
+            className="w-full flex items-center gap-2.5 text-left px-4 py-3 rounded-lg bg-surface border border-line text-sm text-fg hover:bg-wash hover:border-line-strong transition-colors"
           >
+            <span className="w-1.5 h-1.5 rounded-full bg-warn flex-shrink-0" />
             {s.overview_inbox_pending(inboxCount)}
           </button>
         ) : (
-          <p className="text-sm text-gray-400 dark:text-gray-500 py-2 text-center">{s.overview_inbox_empty}</p>
+          <p className="text-sm text-fg-faint py-2 text-center">{s.overview_inbox_empty}</p>
         )}
       </section>
 
       {/* ③ 标签统计 */}
       {sortedTags.length > 0 && (
         <section>
-          <h3 className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
+          <h3 className="text-xs font-medium text-fg-faint uppercase tracking-wider mb-2">
             {s.overview_tags_title}
           </h3>
           <div className="space-y-1">
@@ -65,10 +66,10 @@ export default function Overview() {
               <button
                 key={tag.id}
                 onClick={() => { setTagFilter(tag.id); setPage('all'); }}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                className="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm hover:bg-wash transition-colors"
               >
-                <span className="text-gray-600 dark:text-gray-400">#{tag.name}</span>
-                <span className="text-gray-400 dark:text-gray-500">{s.tag_count(tag.count)}</span>
+                <span className="text-fg-muted">#{tag.name}</span>
+                <span className="text-fg-faint">{s.tag_count(tag.count)}</span>
               </button>
             ))}
           </div>
@@ -77,18 +78,18 @@ export default function Overview() {
 
       {/* ④ 沉底区：久未更新 */}
       <section>
-        <h3 className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
+        <h3 className="text-xs font-medium text-fg-faint uppercase tracking-wider mb-2">
           {s.overview_stale_title}
           {staleItems.length > 0 && (
-            <span className="ml-2 normal-case font-normal text-amber-500 dark:text-amber-400">
+            <span className="ml-2 normal-case font-normal text-warn">
               {s.allitems_count(staleItems.length)}
             </span>
           )}
         </h3>
         {staleItems.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500 py-2 text-center">{s.overview_stale_empty}</p>
+          <p className="text-sm text-fg-faint py-2 text-center">{s.overview_stale_empty}</p>
         ) : (
-          <div className="rounded-lg border border-amber-100 dark:border-amber-900 overflow-hidden">
+          <div className="rounded-lg border border-line overflow-hidden">
             {staleItems.map((item) => (
               <ItemRow
                 key={item.id}

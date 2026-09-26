@@ -8,9 +8,9 @@ import TagPicker from './TagPicker';
 
 const PRIORITY_LABEL: Record<number, string> = { 1: 'P1', 2: 'P2', 3: 'P3' };
 const PRIORITY_COLOR: Record<number, string> = {
-  1: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300',
-  2: 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300',
-  3: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
+  1: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
+  2: 'bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300',
+  3: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',
 };
 
 interface ItemRowProps {
@@ -81,14 +81,14 @@ export default function ItemRow({
   const isDone = item.status === 'done';
 
   return (
-    <div className="group flex gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+    <div className="group flex gap-3 px-4 py-3 border-b border-line-soft hover:bg-wash">
       {onToggleDone && (
         <button
           onClick={onToggleDone}
-          className="mt-0.5 flex-shrink-0 w-4 h-4 rounded border border-gray-300 dark:border-gray-600 flex items-center justify-center hover:border-gray-500 dark:hover:border-gray-400"
+          className="mt-0.5 flex-shrink-0 w-4 h-4 rounded border border-line-strong flex items-center justify-center hover:border-fg-muted"
           title={isDone ? s.item_toggle_undone : s.item_toggle_done}
         >
-          {isDone && <span className="text-green-600 dark:text-green-400 text-xs leading-none">✓</span>}
+          {isDone && <span className="text-ok text-xs leading-none">✓</span>}
         </button>
       )}
 
@@ -109,12 +109,12 @@ export default function ItemRow({
               }
             }}
             rows={3}
-            className="w-full min-h-[4.5rem] overflow-y-auto text-sm border border-blue-300 dark:border-blue-700 rounded px-2 py-1 resize-none focus:outline-none focus:ring-1 focus:ring-blue-400 dark:focus:ring-blue-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            className="w-full min-h-[4.5rem] overflow-y-auto text-sm border border-accent/50 rounded px-2 py-1 resize-none focus:outline-none focus:ring-1 focus:ring-accent/70 bg-surface text-fg"
           />
         ) : (
           <div
             className={`text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert ${
-              isDone ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-800 dark:text-gray-200'
+              isDone ? 'line-through text-fg-faint' : 'text-fg-2'
             } ${onUpdateContent ? 'cursor-text' : ''}`}
             onClick={() => {
               if (!onUpdateContent) return;
@@ -134,7 +134,7 @@ export default function ItemRow({
             </span>
           )}
           <span
-            className="text-xs text-gray-400 dark:text-gray-500"
+            className="text-xs text-fg-faint"
             title={new Date(item.created_at).toLocaleString(s.time_locale)}
           >
             {relativeTime(item.created_at, lang)}
@@ -161,7 +161,7 @@ export default function ItemRow({
                 className={`text-xs px-1.5 py-0.5 rounded border transition-colors ${
                   item.priority === p
                     ? PRIORITY_COLOR[p] + ' border-transparent'
-                    : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500'
+                    : 'border-line text-fg-muted hover:border-line-strong'
                 }`}
               >
                 P{p}
@@ -173,7 +173,7 @@ export default function ItemRow({
         {onSetTodo && (
           <button
             onClick={onSetTodo}
-            className="text-xs px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-700 dark:hover:text-gray-200 whitespace-nowrap"
+            className="text-xs px-2 py-0.5 rounded border border-line text-fg-muted hover:border-line-strong hover:text-fg-2 whitespace-nowrap"
           >
             {s.item_btn_todo}
           </button>
@@ -182,7 +182,7 @@ export default function ItemRow({
         {onArchive && (
           <button
             onClick={onArchive}
-            className="text-xs px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-700 dark:hover:text-gray-200"
+            className="text-xs px-2 py-0.5 rounded border border-line text-fg-muted hover:border-line-strong hover:text-fg-2"
           >
             {s.item_btn_archive}
           </button>
@@ -191,7 +191,7 @@ export default function ItemRow({
         {onDelete && (
           <button
             onClick={onDelete}
-            className="text-xs px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700 text-red-400 dark:text-red-500 hover:border-red-300 dark:hover:border-red-700 hover:text-red-600 dark:hover:text-red-400"
+            className="text-xs px-2 py-0.5 rounded border border-line text-danger/80 hover:border-danger/50 hover:text-danger"
           >
             {s.item_btn_delete}
           </button>

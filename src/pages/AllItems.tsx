@@ -52,7 +52,7 @@ export default function AllItems() {
 
   return (
     <div className="p-6 max-w-2xl">
-      <h2 className="text-base font-semibold text-gray-700 dark:text-gray-300 mb-3">{s.allitems_title}</h2>
+      <h2 className="text-base font-semibold text-fg-2 mb-3">{s.allitems_title}</h2>
 
       {/* 搜索框 */}
       <div className="flex gap-2 mb-3">
@@ -61,12 +61,12 @@ export default function AllItems() {
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           placeholder={s.allitems_search_placeholder}
-          className="flex-1 text-sm border border-gray-200 dark:border-gray-700 rounded-md px-3 py-1.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-gray-400 dark:focus:border-gray-500 placeholder:text-gray-300 dark:placeholder:text-gray-600"
+          className="flex-1 text-sm border border-line rounded-md px-3 py-1.5 bg-surface text-fg focus:outline-none focus:border-line-strong placeholder:text-fg-ghost"
         />
         {searchInput && (
           <button
             onClick={() => { setSearchInput(''); setSearch(''); }}
-            className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 px-1"
+            className="text-fg-faint hover:text-fg-muted px-1"
           >
             ×
           </button>
@@ -81,15 +81,15 @@ export default function AllItems() {
             onClick={() => setStatusFilter(statusFilter === st ? null : st)}
             className={`text-xs px-2.5 py-0.5 rounded-full border transition-colors ${
               statusFilter === st
-                ? 'bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-900 border-gray-700 dark:border-gray-200'
-                : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500'
+                ? 'bg-fg text-canvas border-fg'
+                : 'border-line text-fg-muted hover:border-line-strong'
             }`}
           >
             {STATUS_LABEL[st]}
           </button>
         ))}
 
-        <span className="text-gray-200 dark:text-gray-700 select-none">|</span>
+        <span className="text-line select-none">|</span>
 
         {PRIORITY_OPTIONS.map((p) => (
           <button
@@ -97,8 +97,8 @@ export default function AllItems() {
             onClick={() => setPriorityFilter(priorityFilter === p ? null : p)}
             className={`text-xs px-2.5 py-0.5 rounded-full border transition-colors ${
               priorityFilter === p
-                ? 'bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-900 border-gray-700 dark:border-gray-200'
-                : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500'
+                ? 'bg-fg text-canvas border-fg'
+                : 'border-line text-fg-muted hover:border-line-strong'
             }`}
           >
             P{p}
@@ -107,10 +107,10 @@ export default function AllItems() {
 
         {activeTag && (
           <>
-            <span className="text-gray-200 dark:text-gray-700 select-none">|</span>
+            <span className="text-line select-none">|</span>
             <button
               onClick={() => setTagFilter(null)}
-              className="text-xs px-2.5 py-0.5 rounded-full border bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900"
+              className="text-xs px-2.5 py-0.5 rounded-full border bg-accent/10 text-accent border-accent/30 hover:bg-accent/20"
             >
               #{activeTag.name} ×
             </button>
@@ -120,14 +120,14 @@ export default function AllItems() {
         {hasFilter && (
           <button
             onClick={() => { setSearchInput(''); clearFilters(); }}
-            className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 ml-1"
+            className="text-xs text-fg-faint hover:text-fg-muted ml-1"
           >
             {s.allitems_clear_filter}
           </button>
         )}
 
         {allItems.length > 0 && (
-          <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto">
+          <span className="text-xs text-fg-faint ml-auto">
             {s.allitems_count(allItems.length)}
           </span>
         )}
@@ -135,11 +135,11 @@ export default function AllItems() {
 
       {/* 条目列表 */}
       {allItems.length === 0 ? (
-        <p className="text-sm text-gray-400 dark:text-gray-500 py-12 text-center">
+        <p className="text-sm text-fg-faint py-12 text-center">
           {hasFilter ? s.allitems_empty_filter : s.allitems_empty}
         </p>
       ) : (
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="rounded-lg border border-line overflow-hidden">
           {allItems.map((item) => (
             <div key={item.id}>
               <ItemRow
@@ -154,7 +154,7 @@ export default function AllItems() {
                 onRemoveTag={(tagId) => removeTag(item.id, tagId)}
                 onCreateTag={(name) => createAndAddTag(item.id, name)}
               />
-              <div className="px-4 pb-1 text-xs text-gray-300 dark:text-gray-600">
+              <div className="px-4 pb-1 text-xs text-fg-ghost">
                 {STATUS_LABEL[item.status]}
               </div>
             </div>
