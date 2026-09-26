@@ -6,7 +6,7 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Manager, WindowEvent,
 };
-use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
 // ── 数据目录：文件即真相，指针存本机 app-config，不参与同步 ──────────────
 
@@ -35,14 +35,35 @@ fn ensure_subdirs(dir: &PathBuf) {
     fs::create_dir_all(dir.join("tags")).ok();
 }
 
+/// 读整个 config.json;不存在或损坏时返回空对象
+fn read_config(app: &AppHandle) -> serde_json::Map<String, serde_json::Value> {
+    config_path(app)
+        .ok()
+        .and_then(|p| fs::read_to_string(p).ok())
+        .and_then(|text| serde_json::from_str::<serde_json::Value>(&text).ok())
+        .and_then(|v| match v {
+            serde_json::Value::Object(m) => Some(m),
+            _ => None,
+        })
+        .unwrap_or_default()
+}
+
+/// 读-改-写合并单个键,不冲掉其他键(data_dir / shortcut 并存)
+fn write_config_key(app: &AppHandle, key: &str, value: serde_json::Value) -> Result<(), String> {
+    let cfg = config_path(app)?;
+    let mut map = read_config(app);
+    map.insert(key.to_string(), value);
+    let text = serde_json::to_string_pretty(&serde_json::Value::Object(map))
+        .map_err(|e| e.to_string())?;
+    fs::write(&cfg, text).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 fn get_data_dir(app: AppHandle) -> Result<String, String> {
-    let cfg = config_path(&app)?;
-    let configured = fs::read_to_string(&cfg).ok().and_then(|text| {
-        serde_json::from_str::<serde_json::Value>(&text)
-            .ok()
-            .and_then(|v| v.get("data_dir").and_then(|x| x.as_str()).map(PathBuf::from))
-    });
+    let configured = read_config(&app)
+        .get("data_dir")
+        .and_then(|x| x.as_str())
+        .map(PathBuf::from);
     let dir = configured.unwrap_or_else(|| default_data_dir(&app));
     ensure_subdirs(&dir);
     Ok(dir.to_string_lossy().to_string())
@@ -50,11 +71,122 @@ fn get_data_dir(app: AppHandle) -> Result<String, String> {
 
 #[tauri::command]
 fn set_data_dir(app: AppHandle, path: String) -> Result<(), String> {
-    let cfg = config_path(&app)?;
-    let json = serde_json::json!({ "data_dir": path });
-    fs::write(&cfg, serde_json::to_string_pretty(&json).map_err(|e| e.to_string())?)
-        .map_err(|e| e.to_string())?;
+    write_config_key(&app, "data_dir", serde_json::Value::String(path.clone()))?;
     ensure_subdirs(&PathBuf::from(&path));
+    Ok(())
+}
+
+// ── 全局捕获快捷键:存本机 config.json 的 "shortcut",不参与同步 ─────────
+
+const DEFAULT_SHORTCUT: &str = "CmdOrCtrl+Shift+Space";
+
+/// 当前生效(或应生效)的 accelerator 字符串;各命令持锁执行,注册操作因此串行
+struct CurrentShortcut(Mutex<String>);
+
+/// 启动时读取:缺省或无法解析时用默认值
+fn load_shortcut(app: &AppHandle) -> String {
+    read_config(app)
+        .get("shortcut")
+        .and_then(|x| x.as_str())
+        .filter(|s| s.parse::<Shortcut>().is_ok())
+        .map(String::from)
+        .unwrap_or_else(|| DEFAULT_SHORTCUT.to_string())
+}
+
+/// 托盘"注册失败"提示项的显示/隐藏
+fn set_tray_shortcut_err(app: &AppHandle, show: bool) {
+    let Some(state) = app.try_state::<Mutex<TrayItems>>() else {
+        return;
+    };
+    // 先改标记并克隆句柄再放锁:菜单操作会派发到主线程等待,持锁等待可能与主线程上的 set_tray_language 互锁
+    let (menu, item) = {
+        let Ok(mut t) = state.lock() else {
+            return;
+        };
+        if t.err_shown == show {
+            return;
+        }
+        t.err_shown = show;
+        (t.menu.clone(), t.shortcut_err.clone())
+    };
+    let _ = if show {
+        // 插在"快速捕获"之后,与启动时的位置一致
+        menu.insert(&item, 2)
+    } else {
+        menu.remove(&item)
+    };
+}
+
+// 以下命令一律 async(不在主线程执行):插件注册要派发到主线程并阻塞等待结果,
+// 若主线程上的同步命令去抢 CurrentShortcut 锁会互锁
+
+#[tauri::command]
+async fn get_shortcut(app: AppHandle) -> Result<String, String> {
+    let state = app.state::<CurrentShortcut>();
+    let current = state.0.lock().map_err(|e| e.to_string())?;
+    Ok(current.clone())
+}
+
+#[tauri::command]
+async fn set_shortcut(app: AppHandle, accel: String) -> Result<(), String> {
+    let state = app.state::<CurrentShortcut>();
+    let mut current = state.0.lock().map_err(|e| e.to_string())?;
+    let gs = app.global_shortcut();
+    let new_sc: Shortcut = accel.parse().map_err(|e| format!("{e}"))?;
+    let old_sc: Option<Shortcut> = current.parse().ok();
+
+    // 1. 先注销当前(录制期间已被暂停时无需注销)
+    let old_registered = old_sc.filter(|s| gs.is_registered(*s));
+    if let Some(old) = old_registered {
+        gs.unregister(old).map_err(|e| e.to_string())?;
+    }
+
+    // 2. 注册新的;失败则重新注册旧的并返回错误,不写 config
+    if let Err(e) = gs.register(new_sc) {
+        if let Some(old) = old_registered {
+            if gs.register(old).is_err() {
+                set_tray_shortcut_err(&app, true);
+            }
+        }
+        return Err(e.to_string());
+    }
+
+    // 3. 成功:记为当前,移除托盘失败提示,写 config
+    *current = accel.clone();
+    set_tray_shortcut_err(&app, false);
+    write_config_key(&app, "shortcut", serde_json::Value::String(accel))?;
+    Ok(())
+}
+
+/// 录制组合键期间暂停当前快捷键,避免按下旧组合时呼出捕获窗抢走焦点
+#[tauri::command]
+async fn pause_shortcut(app: AppHandle) -> Result<(), String> {
+    let state = app.state::<CurrentShortcut>();
+    let current = state.0.lock().map_err(|e| e.to_string())?;
+    let gs = app.global_shortcut();
+    if let Ok(sc) = current.parse::<Shortcut>() {
+        if gs.is_registered(sc) {
+            gs.unregister(sc).map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
+}
+
+/// 录制结束后恢复:确保当前快捷键处于注册状态(幂等)
+#[tauri::command]
+async fn resume_shortcut(app: AppHandle) -> Result<(), String> {
+    let state = app.state::<CurrentShortcut>();
+    let current = state.0.lock().map_err(|e| e.to_string())?;
+    let gs = app.global_shortcut();
+    let sc: Shortcut = current.parse().map_err(|e| format!("{e}"))?;
+    if gs.is_registered(sc) {
+        return Ok(());
+    }
+    if let Err(e) = gs.register(sc) {
+        set_tray_shortcut_err(&app, true);
+        return Err(e.to_string());
+    }
+    set_tray_shortcut_err(&app, false);
     Ok(())
 }
 
@@ -163,10 +295,13 @@ fn show_main(app: &AppHandle) {
 }
 
 struct TrayItems {
+    menu: Menu<tauri::Wry>,
     open_main: MenuItem<tauri::Wry>,
     quick_capture: MenuItem<tauri::Wry>,
     quit: MenuItem<tauri::Wry>,
-    shortcut_err: Option<MenuItem<tauri::Wry>>,
+    // 始终持有;仅在注册失败时插入菜单,err_shown 标记是否在菜单中
+    shortcut_err: MenuItem<tauri::Wry>,
+    err_shown: bool,
 }
 
 #[tauri::command]
@@ -183,11 +318,10 @@ fn set_tray_language(
                 .set_text(text)
                 .map_err(|e| e.to_string())?,
             "quit" => handles.quit.set_text(text).map_err(|e| e.to_string())?,
-            "shortcut_err" => {
-                if let Some(ref item) = handles.shortcut_err {
-                    item.set_text(text).map_err(|e| e.to_string())?;
-                }
-            }
+            "shortcut_err" => handles
+                .shortcut_err
+                .set_text(text)
+                .map_err(|e| e.to_string())?,
             _ => {}
         }
     }
@@ -211,11 +345,13 @@ pub fn run() {
                 .build(),
         )
         .setup(|app| {
-            // CmdOrCtrl:Windows 为 Ctrl,macOS 自动为 Cmd
-            let shortcut_result = app.global_shortcut().register("CmdOrCtrl+Shift+Space");
+            // 本机配置的快捷键;缺省/非法 → CmdOrCtrl+Shift+Space(CmdOrCtrl:Windows 为 Ctrl,macOS 为 Cmd)
+            let accel = load_shortcut(app.handle());
+            let shortcut_result = app.global_shortcut().register(accel.as_str());
             if let Err(ref e) = shortcut_result {
-                eprintln!("CmdOrCtrl+Shift+Space 注册失败: {e}");
+                eprintln!("{accel} 注册失败: {e}");
             }
+            app.manage(CurrentShortcut(Mutex::new(accel)));
 
             let main_win = app.get_webview_window("main").unwrap();
             let mw = main_win.clone();
@@ -239,16 +375,11 @@ pub fn run() {
             let quick_capture =
                 MenuItem::with_id(app, "quick_capture", "快速捕获", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
-            // 键名文案按平台显示;JS 侧启动后会用 set_tray_language 覆盖为当前语言文案
-            let shortcut_err_text = if cfg!(target_os = "macos") {
-                "⚠ Cmd+Shift+Space 快捷键注册失败"
-            } else {
-                "⚠ Ctrl+Shift+Space 快捷键注册失败"
-            };
+            // JS 侧启动后会用 set_tray_language 覆盖为当前语言文案
             let shortcut_err = MenuItem::with_id(
                 app,
                 "shortcut_err",
-                shortcut_err_text,
+                "⚠ 全局快捷键注册失败,请在设置中更换",
                 false,
                 None::<&str>,
             )?;
@@ -259,16 +390,14 @@ pub fn run() {
                 Menu::with_items(app, &[&open_main, &quick_capture, &quit])?
             };
 
-            // Store handles for language switching
+            // 保存句柄:语言切换改文案 + 注册失败提示项的增删
             app.manage(Mutex::new(TrayItems {
+                menu: menu.clone(),
                 open_main: open_main.clone(),
                 quick_capture: quick_capture.clone(),
                 quit: quit.clone(),
-                shortcut_err: if shortcut_result.is_err() {
-                    Some(shortcut_err)
-                } else {
-                    None
-                },
+                shortcut_err,
+                err_shown: shortcut_result.is_err(),
             }));
 
             let tray = TrayIconBuilder::new()
@@ -316,6 +445,10 @@ pub fn run() {
             set_tray_language,
             get_data_dir,
             set_data_dir,
+            get_shortcut,
+            set_shortcut,
+            pause_shortcut,
+            resume_shortcut,
             list_records,
             write_record_atomic,
             move_to_conflicts

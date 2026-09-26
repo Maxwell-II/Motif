@@ -1,7 +1,7 @@
 export type Lang = 'zh' | 'en';
 
-// 修饰键名按平台显示:macOS 为 Cmd,其余为 Ctrl(全局快捷键在 Rust 侧用 CmdOrCtrl 注册)
-const isMac =
+// 修饰键名按平台显示:macOS 为 Cmd,其余为 Ctrl
+export const isMac =
   typeof navigator !== 'undefined' && navigator.platform.toUpperCase().includes('MAC');
 const MOD = isMac ? 'Cmd' : 'Ctrl';
 // 捕获窗保存键:mac 显示 ⌘+Enter,其余 Ctrl+Enter
@@ -23,6 +23,12 @@ export interface LangStrings {
   sidebar_datadir_label: string;
   sidebar_datadir_change: string;
   sidebar_datadir_changed: string;
+  sidebar_shortcut_label: string;
+  sidebar_shortcut_change: string;
+  sidebar_shortcut_reset: string;
+  sidebar_shortcut_recording: string;
+  sidebar_shortcut_saved: string;
+  sidebar_shortcut_err: string;
   settings_label: string;
   quickadd_placeholder: string;
   quickadd_button: string;
@@ -83,6 +89,12 @@ export const STRINGS: Record<Lang, LangStrings> = {
     sidebar_datadir_label: '数据目录',
     sidebar_datadir_change: '更改…',
     sidebar_datadir_changed: '已切换数据目录',
+    sidebar_shortcut_label: '快捷捕获快捷键',
+    sidebar_shortcut_change: '修改',
+    sidebar_shortcut_reset: '恢复默认',
+    sidebar_shortcut_recording: '请按下组合键…(Esc 取消)',
+    sidebar_shortcut_saved: '快捷键已生效',
+    sidebar_shortcut_err: '无法注册该组合键,可能已被其他程序占用',
     settings_label: '设置',
     quickadd_placeholder: '快速记录一条想法…',
     quickadd_button: '记录',
@@ -123,7 +135,7 @@ export const STRINGS: Record<Lang, LangStrings> = {
     tray_open_main: '打开主窗口',
     tray_quick_capture: '快速捕获',
     tray_quit: '退出',
-    tray_shortcut_err: `⚠ ${MOD}+Shift+Space 快捷键注册失败`,
+    tray_shortcut_err: '⚠ 全局快捷键注册失败,请在设置中更换',
     time_locale: 'zh-CN',
   },
   en: {
@@ -142,6 +154,12 @@ export const STRINGS: Record<Lang, LangStrings> = {
     sidebar_datadir_label: 'Data folder',
     sidebar_datadir_change: 'Change…',
     sidebar_datadir_changed: 'Data folder switched',
+    sidebar_shortcut_label: 'Quick capture shortcut',
+    sidebar_shortcut_change: 'Change',
+    sidebar_shortcut_reset: 'Reset',
+    sidebar_shortcut_recording: 'Press a key combo… (Esc to cancel)',
+    sidebar_shortcut_saved: 'Shortcut updated',
+    sidebar_shortcut_err: 'Could not register this combo; another app may be using it',
     settings_label: 'Settings',
     quickadd_placeholder: 'Quick note…',
     quickadd_button: 'Add',
@@ -183,7 +201,7 @@ export const STRINGS: Record<Lang, LangStrings> = {
     tray_open_main: 'Open Main Window',
     tray_quick_capture: 'Quick Capture',
     tray_quit: 'Quit',
-    tray_shortcut_err: `⚠ ${MOD}+Shift+Space shortcut failed to register`,
+    tray_shortcut_err: '⚠ Global shortcut failed to register; change it in Settings',
     time_locale: 'en-US',
   },
 };

@@ -5,7 +5,8 @@ import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { useItemsStore } from '../stores/itemsStore';
 import { useSettingsStore, type Theme, type Lang } from '../stores/settingsStore';
-import { STRINGS } from '../lib/strings';
+import { STRINGS, type LangStrings } from '../lib/strings';
+import { DEFAULT_SHORTCUT, formatAccel, keyEventToAccel } from '../lib/shortcut';
 import { isImeComposing } from '../lib/ime';
 import type { TagWithCount } from '../types';
 import Overview from '../pages/Overview';
@@ -30,6 +31,108 @@ function GearIcon() {
       <circle cx="12" cy="12" r="3" />
       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
+  );
+}
+
+/** 设置面板中的"快捷捕获快捷键"一行:显示当前组合 + 修改(录制)+ 恢复默认 */
+function ShortcutSetting({ s }: { s: LangStrings }) {
+  const [accel, setAccel] = useState('');
+  const [recording, setRecording] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const handlingRef = useRef(false);
+
+  useEffect(() => {
+    invoke<string>('get_shortcut').then(setAccel).catch(() => {});
+  }, []);
+
+  const apply = async (next: string) => {
+    setBusy(true);
+    try {
+      await invoke('set_shortcut', { accel: next });
+      setAccel(next);
+      setMsg({ ok: true, text: s.sidebar_shortcut_saved });
+    } catch {
+      // 注册失败:Rust 侧已回滚旧快捷键,config 未改动
+      setMsg({ ok: false, text: s.sidebar_shortcut_err });
+    } finally {
+      setBusy(false);
+    }
+    setTimeout(() => setMsg(null), 3000);
+  };
+
+  // 录制态:暂停当前全局快捷键,捕获阶段监听按键;退出录制(含面板关闭卸载)时恢复
+  useEffect(() => {
+    if (!recording) return;
+    handlingRef.current = false;
+    invoke('pause_shortcut').catch(() => {});
+
+    const onKey = async (e: KeyboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation(); // 不让设置面板的 Esc 关闭、Ctrl+F 等其他快捷键响应
+      if (e.repeat || handlingRef.current) return;
+      if (e.code === 'Escape') {
+        setRecording(false);
+        return;
+      }
+      const next = keyEventToAccel(e);
+      if (!next) return; // 组合不完整,继续等待
+      handlingRef.current = true;
+      await apply(next);
+      setRecording(false);
+    };
+    const onBlur = () => {
+      if (!handlingRef.current) setRecording(false);
+    };
+
+    window.addEventListener('keydown', onKey, true);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('keydown', onKey, true);
+      window.removeEventListener('blur', onBlur);
+      invoke('resume_shortcut').catch(() => {});
+    };
+  }, [recording]);
+
+  const btn =
+    'text-xs py-1 px-2 rounded text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-40 disabled:hover:bg-transparent';
+
+  return (
+    <div className="px-3 mb-3">
+      <p className="text-xs text-gray-400 dark:text-gray-500 mb-1.5">{s.sidebar_shortcut_label}</p>
+      <p className="text-xs text-gray-600 dark:text-gray-300 mb-1">{accel ? formatAccel(accel) : '…'}</p>
+      {msg && (
+        <p
+          className={`text-xs mb-1 ${
+            msg.ok ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'
+          }`}
+        >
+          {msg.text}
+        </p>
+      )}
+      <div className="flex flex-wrap gap-0.5">
+        <button
+          onClick={(e) => {
+            e.currentTarget.blur(); // 避免录制时 Space/Enter 触发按钮本身
+            setMsg(null);
+            setRecording((v) => !v);
+          }}
+          disabled={busy}
+          className={`${btn} ${recording ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100' : ''}`}
+        >
+          {recording ? s.sidebar_shortcut_recording : s.sidebar_shortcut_change}
+        </button>
+        {!recording && (
+          <button
+            onClick={() => apply(DEFAULT_SHORTCUT)}
+            disabled={busy || accel === DEFAULT_SHORTCUT}
+            className={btn}
+          >
+            {s.sidebar_shortcut_reset}
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -293,6 +396,9 @@ export default function MainWindow() {
                     {s.sidebar_datadir_change}
                   </button>
                 </div>
+
+                {/* 快捷捕获快捷键 */}
+                <ShortcutSetting s={s} />
 
                 {/* 分隔线 */}
                 <div className="border-t border-gray-100 dark:border-gray-700 my-2" />
