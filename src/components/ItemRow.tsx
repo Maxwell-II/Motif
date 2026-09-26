@@ -52,8 +52,19 @@ export default function ItemRow({
     setEditValue(item.content);
   }, [item.content]);
 
+  // 高度随内容自适应,上限为窗口高度 60%,超出才滚动
+  const autoResize = () => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    // border-box 下 scrollHeight 不含边框,需补上,否则会多出 2px 滚动条
+    const border = el.offsetHeight - el.clientHeight;
+    el.style.height = `${Math.min(el.scrollHeight + border, Math.round(window.innerHeight * 0.6))}px`;
+  };
+
   useEffect(() => {
     if (isEditing && textareaRef.current) {
+      autoResize();
       textareaRef.current.focus();
       textareaRef.current.selectionStart = textareaRef.current.value.length;
     }
@@ -86,7 +97,10 @@ export default function ItemRow({
           <textarea
             ref={textareaRef}
             value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
+            onChange={(e) => {
+              setEditValue(e.target.value);
+              autoResize();
+            }}
             onBlur={handleSave}
             onKeyDown={(e) => {
               if (e.key === 'Escape') {
@@ -95,14 +109,19 @@ export default function ItemRow({
               }
             }}
             rows={3}
-            className="w-full text-sm border border-blue-300 dark:border-blue-700 rounded px-2 py-1 resize-none focus:outline-none focus:ring-1 focus:ring-blue-400 dark:focus:ring-blue-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            className="w-full min-h-[4.5rem] overflow-y-auto text-sm border border-blue-300 dark:border-blue-700 rounded px-2 py-1 resize-none focus:outline-none focus:ring-1 focus:ring-blue-400 dark:focus:ring-blue-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
           />
         ) : (
           <div
             className={`text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert ${
               isDone ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-800 dark:text-gray-200'
             } ${onUpdateContent ? 'cursor-text' : ''}`}
-            onClick={() => onUpdateContent && setIsEditing(true)}
+            onClick={() => {
+              if (!onUpdateContent) return;
+              // 拖选文字准备复制时不进入编辑,避免选区丢失
+              if (window.getSelection()?.toString()) return;
+              setIsEditing(true);
+            }}
           >
             <Markdown>{item.content}</Markdown>
           </div>
