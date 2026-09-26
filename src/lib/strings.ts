@@ -4,6 +4,8 @@ export type Lang = 'zh' | 'en';
 const isMac =
   typeof navigator !== 'undefined' && navigator.platform.toUpperCase().includes('MAC');
 const MOD = isMac ? 'Cmd' : 'Ctrl';
+// 捕获窗保存键:mac 显示 ⌘+Enter,其余 Ctrl+Enter
+const SAVE_KEY = isMac ? '⌘+Enter' : 'Ctrl+Enter';
 
 export interface LangStrings {
   nav_overview: string;
@@ -117,7 +119,7 @@ export const STRINGS: Record<Lang, LangStrings> = {
     tag_delete_confirm: (count) =>
       `仍有 ${count} 条条目使用该标签，删除后条目本身不受影响，确定删除？`,
     tag_delete_title: '删除标签',
-    capture_placeholder: '记录一条想法… (Enter 保存，Shift+Enter 换行，Esc 取消)',
+    capture_placeholder: `记录一条想法… (${SAVE_KEY} 保存，Enter 换行，Esc 取消)`,
     tray_open_main: '打开主窗口',
     tray_quick_capture: '快速捕获',
     tray_quit: '退出',
@@ -177,7 +179,7 @@ export const STRINGS: Record<Lang, LangStrings> = {
       `${count} item(s) use this tag. Items won't be affected. Delete tag?`,
     tag_delete_title: 'Delete tag',
     capture_placeholder:
-      'Capture a thought… (Enter to save, Shift+Enter for newline, Esc to cancel)',
+      `Capture a thought… (${SAVE_KEY} to save, Enter for newline, Esc to cancel)`,
     tray_open_main: 'Open Main Window',
     tray_quick_capture: 'Quick Capture',
     tray_quit: 'Quit',

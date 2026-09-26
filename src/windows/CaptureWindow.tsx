@@ -7,6 +7,7 @@ import { createItem } from '../db/repo';
 import { parseCapture } from '../lib/parseCapture';
 import { applyTheme, useSettingsStore, type Theme } from '../stores/settingsStore';
 import { STRINGS } from '../lib/strings';
+import { isImeComposing } from '../lib/ime';
 
 const WIN_W = 560;
 const PADDING_V = 24;
@@ -41,14 +42,23 @@ export default function CaptureWindow() {
       const savedTheme = (localStorage.getItem('motif-theme') as Theme | null) ?? 'system';
       applyTheme(savedTheme);
 
-      setText('');
-      resetSize();
-      setTimeout(() => textareaRef.current?.focus(), 50);
+      // 失焦隐藏时保留草稿:有草稿则按内容恢复高度,光标置于末尾;无草稿则收回单行
+      const hasDraft = !!textareaRef.current?.value;
+      if (hasDraft) adjustSize();
+      else resetSize();
+      setTimeout(() => {
+        const el = textareaRef.current;
+        if (!el) return;
+        el.focus();
+        const end = el.value.length;
+        el.setSelectionRange(end, end);
+      }, 50);
     };
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, [resetSize]);
+  }, [resetSize, adjustSize]);
 
+  // 只有保存成功或 Esc 才清空草稿后隐藏(失焦隐藏由 Rust 端处理,不经过这里)
   const doHide = useCallback(async () => {
     setText('');
     await resetSize();
@@ -56,13 +66,16 @@ export default function CaptureWindow() {
   }, [resetSize]);
 
   const handleKeyDown = async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // 输入法组字中(含回车上屏)的按键一律交给输入法
+    if (isImeComposing(e)) return;
+
     if (e.key === 'Escape') {
       await doHide();
       return;
     }
 
-    if (e.key === 'Enter' && !e.shiftKey) {
-      if (e.nativeEvent.isComposing) return;
+    // Enter / Shift+Enter 走 textarea 默认换行;Cmd/Ctrl+Enter 保存
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       const raw = text.trim();
       if (!raw) {

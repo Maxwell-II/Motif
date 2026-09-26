@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import type { Tag, TagWithCount } from '../types';
 import { useSettingsStore } from '../stores/settingsStore';
 import { STRINGS } from '../lib/strings';
+import { isImeComposing } from '../lib/ime';
 
 interface TagPickerProps {
   currentTags: Tag[];
@@ -74,7 +75,7 @@ export default function TagPicker({ currentTags, allTags, onAdd, onRemove, onCre
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
-                if (e.nativeEvent.isComposing) return;
+                if (isImeComposing(e)) return;
                 e.preventDefault();
                 if (showCreate) handleCreate();
                 else if (filtered.length > 0) handleSelect(filtered[0]);

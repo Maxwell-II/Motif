@@ -153,6 +153,15 @@ fn write_md_files(dir: String, files: Vec<MdFile>) -> Result<usize, String> {
     Ok(files.len())
 }
 
+/// 显示并前置主窗口(托盘菜单、托盘左键、macOS Dock 重开共用)
+fn show_main(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.show();
+        let _ = w.unminimize();
+        let _ = w.set_focus();
+    }
+}
+
 struct TrayItems {
     open_main: MenuItem<tauri::Wry>,
     quick_capture: MenuItem<tauri::Wry>,
@@ -266,12 +275,7 @@ pub fn run() {
                 .tooltip("Motif")
                 .menu(&menu)
                 .on_menu_event(|app, event| match event.id().as_ref() {
-                    "open_main" => {
-                        if let Some(w) = app.get_webview_window("main") {
-                            let _ = w.show();
-                            let _ = w.set_focus();
-                        }
-                    }
+                    "open_main" => show_main(app),
                     "quick_capture" => {
                         if let Some(w) = app.get_webview_window("capture") {
                             let _ = w.show();
@@ -288,11 +292,7 @@ pub fn run() {
                         ..
                     } = event
                     {
-                        let app = tray.app_handle();
-                        if let Some(w) = app.get_webview_window("main") {
-                            let _ = w.show();
-                            let _ = w.set_focus();
-                        }
+                        show_main(tray.app_handle());
                     }
                 });
 
@@ -320,6 +320,12 @@ pub fn run() {
             write_record_atomic,
             move_to_conflicts
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app, event| match event {
+            // macOS:关闭按钮只是隐藏,点 Dock 图标会发 Reopen,需在此把主窗口找回来
+            #[cfg(target_os = "macos")]
+            tauri::RunEvent::Reopen { .. } => show_main(_app),
+            _ => {}
+        });
 }

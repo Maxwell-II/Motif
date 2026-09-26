@@ -6,6 +6,7 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { useItemsStore } from '../stores/itemsStore';
 import { useSettingsStore, type Theme, type Lang } from '../stores/settingsStore';
 import { STRINGS } from '../lib/strings';
+import { isImeComposing } from '../lib/ime';
 import type { TagWithCount } from '../types';
 import Overview from '../pages/Overview';
 import Inbox from '../pages/Inbox';
@@ -341,7 +342,7 @@ export default function MainWindow() {
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
-                if (!e.nativeEvent.isComposing) doQuickAdd();
+                if (!isImeComposing(e)) doQuickAdd();
               }
             }}
             placeholder={s.quickadd_placeholder}
