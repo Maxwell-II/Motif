@@ -30,6 +30,10 @@ export interface LangStrings {
   sidebar_shortcut_recording: string;
   sidebar_shortcut_saved: string;
   sidebar_shortcut_err: string;
+  sidebar_autostart_label: string;
+  sidebar_autostart_on: string;
+  sidebar_autostart_off: string;
+  sidebar_autostart_err: string;
   settings_label: string;
   quickadd_placeholder: string;
   quickadd_button: string;
@@ -101,6 +105,10 @@ export const STRINGS: Record<Lang, LangStrings> = {
     sidebar_shortcut_recording: '请按下组合键…(Esc 取消)',
     sidebar_shortcut_saved: '快捷键已生效',
     sidebar_shortcut_err: '无法注册该组合键,可能已被其他程序占用',
+    sidebar_autostart_label: '开机自启动',
+    sidebar_autostart_on: '开',
+    sidebar_autostart_off: '关',
+    sidebar_autostart_err: '设置失败,请重试',
     settings_label: '设置',
     quickadd_placeholder: '快速记录一条想法…',
     quickadd_button: '记录',
@@ -171,6 +179,10 @@ export const STRINGS: Record<Lang, LangStrings> = {
     sidebar_shortcut_recording: 'Press a key combo… (Esc to cancel)',
     sidebar_shortcut_saved: 'Shortcut updated',
     sidebar_shortcut_err: 'Could not register this combo; another app may be using it',
+    sidebar_autostart_label: 'Launch at login',
+    sidebar_autostart_on: 'On',
+    sidebar_autostart_off: 'Off',
+    sidebar_autostart_err: 'Could not change this setting, please try again',
     settings_label: 'Settings',
     quickadd_placeholder: 'Quick note…',
     quickadd_button: 'Add',

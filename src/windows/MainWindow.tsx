@@ -3,6 +3,7 @@ import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
+import { enable, disable, isEnabled } from '@tauri-apps/plugin-autostart';
 import { useItemsStore } from '../stores/itemsStore';
 import { useSettingsStore, type Theme, type Lang } from '../stores/settingsStore';
 import { STRINGS, type LangStrings } from '../lib/strings';
@@ -37,6 +38,56 @@ function GearIcon() {
 }
 
 /** 设置面板中的"快捷捕获快捷键"一行:显示当前组合 + 修改(录制)+ 恢复默认 */
+// 开机自启动:状态以系统为准(Windows 注册表 Run 项 / macOS LaunchAgent),不存 config、不同步
+function AutostartSetting({ s }: { s: LangStrings }) {
+  const [on, setOn] = useState<boolean | null>(null);
+  const [err, setErr] = useState(false);
+
+  useEffect(() => {
+    isEnabled().then(setOn).catch(() => setOn(false));
+  }, []);
+
+  const toggle = async (next: boolean) => {
+    if (next === on) return;
+    setErr(false);
+    try {
+      await (next ? enable() : disable());
+    } catch {
+      setErr(true);
+    }
+    // 无论成败都回读系统真实状态
+    setOn(await isEnabled().catch(() => false));
+  };
+
+  const OPTIONS = [
+    { value: true, label: s.sidebar_autostart_on },
+    { value: false, label: s.sidebar_autostart_off },
+  ];
+
+  return (
+    <div className="px-3 mb-3">
+      <p className="text-xs text-fg-faint mb-1.5">{s.sidebar_autostart_label}</p>
+      <div className="flex gap-0.5">
+        {OPTIONS.map(({ value, label }) => (
+          <button
+            key={label}
+            onClick={() => toggle(value)}
+            disabled={on === null}
+            className={`flex-1 text-xs py-1 rounded transition-colors ${
+              on === value
+                ? 'bg-fg text-canvas font-medium'
+                : 'text-fg-muted hover:bg-selected'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {err && <p className="text-xs text-danger mt-1">{s.sidebar_autostart_err}</p>}
+    </div>
+  );
+}
+
 function ShortcutSetting({ s }: { s: LangStrings }) {
   const [accel, setAccel] = useState('');
   const [recording, setRecording] = useState(false);
@@ -403,6 +454,9 @@ export default function MainWindow() {
 
                 {/* 快捷捕获快捷键 */}
                 <ShortcutSetting s={s} />
+
+                {/* 开机自启动 */}
+                <AutostartSetting s={s} />
 
                 {/* 分隔线 */}
                 <div className="border-t border-line my-2" />

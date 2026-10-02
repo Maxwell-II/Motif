@@ -16,6 +16,7 @@
         "title": "Motif",
         "width": 880,
         "height": 640,
+        "visible": false,
         "resizable": true
       },
       {

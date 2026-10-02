@@ -6,6 +6,7 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Manager, WindowEvent,
 };
+use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
 // ── 数据目录：文件即真相，指针存本机 app-config，不参与同步 ──────────────
@@ -360,6 +361,11 @@ fn set_tray_language(
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        // 开机自启动:默认关,由设置面板开关;自启动项带 --autostart 参数
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            Some(vec!["--autostart"]),
+        ))
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, _shortcut, event| {
@@ -389,6 +395,11 @@ pub fn run() {
                     let _ = mw.hide();
                 }
             });
+            // 主窗口配置为初始隐藏:开机自启动只进托盘,手动启动才显示
+            if !std::env::args().any(|a| a == "--autostart") {
+                let _ = main_win.show();
+                let _ = main_win.set_focus();
+            }
 
             let cap_win = app.get_webview_window("capture").unwrap();
             let cw = cap_win.clone();
