@@ -34,7 +34,10 @@ Motif **has no database**. Each thought is a human-readable Markdown file with m
 
 ```
 <data folder>/
-  items/<uuid>.md      # one file per thought; the body is Markdown
+  items/<uuid>.md      # in progress (inbox / todo), one file each; the body is Markdown
+  items/words/         # vocabulary words
+  items/archive/       # done / archived
+  items/trash/         # deleted (soft-delete records; safe to empty once all devices have synced)
   tags/<uuid>.md       # one file per tag
   conflicts/           # files that lost a sync conflict (created automatically)
 ```
@@ -44,24 +47,23 @@ Sync is handled by **whatever you already use** — iCloud Drive, OneDrive, Drop
 - **On launch and whenever the window gains focus**, Motif re-reads the folder to pick up changes from other devices.
 - **Conflicts**: if the same item was edited on two devices, the copy with the newer `updated_at` wins and the other is moved to `conflicts/` — nothing is lost.
 - Every `.md` file can be opened and edited in any text editor, and Motif will load your changes correctly.
+- Which subfolder a file lives in follows from its fields (deleted → `trash/`, word → `words/`, done/archived → `archive/`); Motif moves it when you complete or delete something, and re-files anything misplaced on next launch.
 
 ### 🤖 Reading it from an agent
 
 The data folder is plain text, so an AI agent can read (read-only) your todos and words directly. Paste this to the agent, with its own path:
 
-> My Motif data is in `<data folder>/items/`, one `.md` per entry: frontmatter between the leading `---` lines, then the body (my own words).
+> My Motif data is in `<data folder>/items/`, one `.md` per entry: frontmatter between the leading `---` lines, then the body (my own words). Files are sorted into folders by state automatically:
 >
-> - **Skip anything whose `deleted_at` is not `null`** — those are deleted records kept only for sync.
-> - **`kind: word`** = a vocabulary word; the first line of the body is usually the word, possibly followed by a note. Not a todo. Entries without a `kind` field are regular notes.
-> - Regular notes by `status`:
->   - `todo`: a todo I've confirmed;
->   - `inbox`: unsorted captures — a mix of todos, ideas, drafts and pasted messages; **judge from the body whether it's a todo**; ones with a `priority` are almost always todos;
->   - `done`: finished; `updated_at` roughly approximates when (later edits also bump it);
->   - `archived`: no longer relevant, ignore.
-> - `priority`: 1 is highest, `null` = unset.
-> - `tags` are tag ids; look up the name in `tags/<id>.md`.
-> - The same `id` occasionally appears twice (a sync conflict copy); use the one with the newer `updated_at`.
-> - **Read only — never modify these files.**
+> - **`items/*.md` (top level only) = in progress**:
+>   - `status: todo`: a todo I've confirmed;
+>   - `status: inbox`: unsorted captures — a mix of todos, ideas, drafts and pasted messages; **judge from the body whether it's a todo**; ones with a `priority` are almost always todos.
+> - **`items/words/` = vocabulary words**: the first line of the body is usually the word, possibly followed by a note.
+> - **`items/archive/` = finished** (`status: done`) or no longer relevant (`status: archived`); `updated_at` roughly approximates when (later edits also bump it).
+> - **`items/trash/` = deleted, ignore.**
+> - `priority`: 1 is highest, `null` = unset. `tags` are tag ids; the name is in `<data folder>/tags/<id>.md` under `name`.
+> - The fields win over the folder: occasionally a file hasn't been moved yet (Motif files it on next launch), or the same `id` appears twice (a sync conflict copy — use the newer `updated_at`).
+> - **Read only — never modify or move these files.**
 
 ## 🚀 Install
 

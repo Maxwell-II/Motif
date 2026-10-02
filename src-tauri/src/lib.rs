@@ -241,6 +241,9 @@ fn write_record_atomic(dir: String, sub: String, name: String, content: String) 
 fn move_to_conflicts(dir: String, sub: String, name: String) -> Result<(), String> {
     let base = PathBuf::from(&dir);
     let from = base.join(&sub).join(&name);
+    if !from.exists() {
+        return Ok(()); // 另一个窗口已处理过
+    }
     let conflicts = base.join("conflicts");
     fs::create_dir_all(&conflicts).map_err(|e| e.to_string())?;
     let mut target = conflicts.join(&name);
@@ -260,6 +263,31 @@ fn move_to_conflicts(dir: String, sub: String, name: String) -> Result<(), Strin
     }
     fs::rename(&from, &target).map_err(|e| e.to_string())?;
     Ok(())
+}
+
+/// 把记录从一个子目录原样挪到另一个（字节不变）。源文件不存在视为已挪过。
+#[tauri::command]
+fn move_record(dir: String, from_sub: String, to_sub: String, name: String) -> Result<(), String> {
+    let base = PathBuf::from(&dir);
+    let from = base.join(&from_sub).join(&name);
+    if !from.exists() {
+        return Ok(());
+    }
+    let to_dir = base.join(&to_sub);
+    fs::create_dir_all(&to_dir).map_err(|e| e.to_string())?;
+    match fs::rename(&from, to_dir.join(&name)) {
+        Err(e) if from.exists() => Err(e.to_string()),
+        _ => Ok(()), // 成功,或期间被另一个窗口挪走
+    }
+}
+
+/// 删掉某个位置上的记录文件:仅用于记录已写到新位置后清理旧位置,不是软删除。
+#[tauri::command]
+fn remove_record(dir: String, sub: String, name: String) -> Result<(), String> {
+    match fs::remove_file(PathBuf::from(&dir).join(&sub).join(&name)) {
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(e.to_string()),
+        _ => Ok(()),
+    }
 }
 
 #[tauri::command]
@@ -451,7 +479,9 @@ pub fn run() {
             resume_shortcut,
             list_records,
             write_record_atomic,
-            move_to_conflicts
+            move_to_conflicts,
+            move_record,
+            remove_record
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

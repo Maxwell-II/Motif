@@ -8,6 +8,9 @@ import { parse, serialize } from '../lib/frontmatter';
 // item↔tag 关联内嵌在 item 的 tags 字段（tag id 数组），不再有独立 item_tags。
 // 单词（kind: word）与普通条目同在 items/，只有单词才写出 kind 字段；
 // 普通视图一律按 kind !== 'word' 过滤，缺省（无字段）即普通条目。
+//
+// M5.7：items/ 按记录内容自动分子目录（见 placeOf）。字段是真相，目录只是推出来的；
+// 放错目录的文件在加载时自动挪回，用户从不手动“移动”条目。
 
 interface ItemRecord {
   id: string;
@@ -32,6 +35,18 @@ interface TagRecord {
 let dataDir = '';
 const items = new Map<string, ItemRecord>();
 const tags = new Map<string, TagRecord>();
+// 每条记录文件当前所在的子目录（不写进文件），位置变化时用来清理旧文件
+const itemPlace = new Map<string, string>();
+
+const ITEM_PLACES = ['items', 'items/words', 'items/archive', 'items/trash'];
+
+/** 位置规则：已删 → trash；单词 → words；做完/归档 → archive；其余（inbox/todo）→ 根目录 */
+function placeOf(r: ItemRecord): string {
+  if (r.deleted_at !== null) return 'items/trash';
+  if (r.kind === 'word') return 'items/words';
+  if (r.status === 'done' || r.status === 'archived') return 'items/archive';
+  return 'items';
+}
 
 let initPromise: Promise<void> | null = null;
 function ensureLoaded(): Promise<void> {
@@ -124,49 +139,66 @@ interface RawRecord {
 }
 
 async function loadCollection<T extends { id: string; updated_at: string }>(
-  sub: 'items' | 'tags',
+  subs: string[],
+  placeFn: (rec: T) => string,
   parseFn: (text: string) => T | null,
   serializeFn: (rec: T) => string,
   target: Map<string, T>,
+  where: Map<string, string>,
 ): Promise<void> {
-  const raw = await invoke<RawRecord[]>('list_records', { dir: dataDir, sub });
-
-  // 按 id 分桶
-  const groups = new Map<string, Array<{ name: string; rec: T }>>();
-  for (const f of raw) {
-    const rec = parseFn(f.content);
-    if (!rec) continue;
-    const arr = groups.get(rec.id) ?? [];
-    arr.push({ name: f.name, rec });
-    groups.set(rec.id, arr);
+  // 读所有位置，按 id 分桶
+  const groups = new Map<string, Array<{ sub: string; name: string; text: string; rec: T }>>();
+  for (const sub of subs) {
+    const raw = await invoke<RawRecord[]>('list_records', { dir: dataDir, sub });
+    for (const f of raw) {
+      const rec = parseFn(f.content);
+      if (!rec) continue;
+      const arr = groups.get(rec.id) ?? [];
+      arr.push({ sub, name: f.name, text: f.content, rec });
+      groups.set(rec.id, arr);
+    }
   }
 
   for (const [id, group] of groups) {
     const canonical = `${id}.md`;
-    // updated_at 最新者胜出；相等时优先规范文件名
+    // updated_at 最新者胜出；相等时优先规范文件名，再优先已在正确位置的
+    const rank = (g: (typeof group)[number]) =>
+      (g.name === canonical ? 0 : 2) + (g.sub === placeFn(g.rec) ? 0 : 1);
     group.sort((a, b) => {
       const c = b.rec.updated_at.localeCompare(a.rec.updated_at);
-      if (c !== 0) return c;
-      if (a.name === canonical) return -1;
-      if (b.name === canonical) return 1;
-      return 0;
+      return c !== 0 ? c : rank(a) - rank(b);
     });
     const winner = group[0];
+    const place = placeFn(winner.rec);
     target.set(id, winner.rec);
+    where.set(id, place);
 
-    // 落败文件归档到 conflicts/（不删，留后悔药）
+    // 落败文件：内容与胜者完全相同只是重复副本，直接清理；否则归档到 conflicts/（不删，留后悔药）
     for (const loser of group.slice(1)) {
-      await invoke('move_to_conflicts', { dir: dataDir, sub, name: loser.name });
+      if (loser.text === winner.text) {
+        await invoke('remove_record', { dir: dataDir, sub: loser.sub, name: loser.name });
+      } else {
+        await invoke('move_to_conflicts', { dir: dataDir, sub: loser.sub, name: loser.name });
+      }
     }
-    // 规范化：胜出内容落在 <id>.md，非规范命名的原文件也归档
+
     if (winner.name !== canonical) {
+      // 同步工具的冲突副本命名：胜出内容落到 <place>/<id>.md，原文件归档
       await invoke('write_record_atomic', {
         dir: dataDir,
-        sub,
+        sub: place,
         name: canonical,
         content: serializeFn(winner.rec),
       });
-      await invoke('move_to_conflicts', { dir: dataDir, sub, name: winner.name });
+      await invoke('move_to_conflicts', { dir: dataDir, sub: winner.sub, name: winner.name });
+    } else if (winner.sub !== place) {
+      // 只是放错目录：原样挪回（字节不变）
+      await invoke('move_record', {
+        dir: dataDir,
+        fromSub: winner.sub,
+        toSub: place,
+        name: canonical,
+      });
     }
   }
 }
@@ -175,19 +207,23 @@ async function loadAll(): Promise<void> {
   dataDir = await invoke<string>('get_data_dir');
   items.clear();
   tags.clear();
-  await loadCollection('items', parseItem, itemToFile, items);
-  await loadCollection('tags', parseTag, tagToFile, tags);
+  itemPlace.clear();
+  await loadCollection(ITEM_PLACES, placeOf, parseItem, itemToFile, items, itemPlace);
+  await loadCollection(['tags'], () => 'tags', parseTag, tagToFile, tags, new Map());
 }
 
 // ── 写辅助 ───────────────────────────────────────────────────────────────
 
 async function persistItem(r: ItemRecord): Promise<void> {
-  await invoke('write_record_atomic', {
-    dir: dataDir,
-    sub: 'items',
-    name: `${r.id}.md`,
-    content: itemToFile(r),
-  });
+  const name = `${r.id}.md`;
+  const place = placeOf(r);
+  // 先写新位置，再清理旧位置：中途失败最多留一份重复，下次加载自动去重
+  await invoke('write_record_atomic', { dir: dataDir, sub: place, name, content: itemToFile(r) });
+  const old = itemPlace.get(r.id);
+  if (old && old !== place) {
+    await invoke('remove_record', { dir: dataDir, sub: old, name });
+  }
+  itemPlace.set(r.id, place);
 }
 
 async function persistTag(r: TagRecord): Promise<void> {
