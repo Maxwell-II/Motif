@@ -8,9 +8,11 @@ import { useSettingsStore, type Theme, type Lang } from '../stores/settingsStore
 import { STRINGS, type LangStrings } from '../lib/strings';
 import { DEFAULT_SHORTCUT, formatAccel, keyEventToAccel } from '../lib/shortcut';
 import { isImeComposing } from '../lib/ime';
+import { parseCapture } from '../lib/parseCapture';
 import type { TagWithCount } from '../types';
 import Overview from '../pages/Overview';
 import Inbox from '../pages/Inbox';
+import Words from '../pages/Words';
 import AllItems from '../pages/AllItems';
 import { exportAllToMarkdown } from '../lib/exportMarkdown';
 
@@ -138,7 +140,7 @@ function ShortcutSetting({ s }: { s: LangStrings }) {
 
 export default function MainWindow() {
   const {
-    currentPage, setPage, inboxCount, load, addItem, reloadFromDisk,
+    currentPage, setPage, inboxCount, words, load, addItem, reloadFromDisk,
     tags, tagFilter, setTagFilter, deleteTag,
     triggerFocusSearch,
   } = useItemsStore();
@@ -216,9 +218,10 @@ export default function MainWindow() {
   }, [isSettingsOpen]);
 
   const doQuickAdd = async () => {
-    const text = quickInput.trim();
-    if (!text) return;
-    await addItem(text);
+    // 与捕获窗同一套语法:`w ` 前缀 → 单词
+    const { content, kind } = parseCapture(quickInput);
+    if (!content) return;
+    await addItem(content, kind);
     setQuickInput('');
     inputRef.current?.focus();
   };
@@ -258,6 +261,7 @@ export default function MainWindow() {
   const navItems = [
     { key: 'overview' as const, label: s.nav_overview },
     { key: 'inbox' as const, label: `${s.nav_inbox}${inboxCount > 0 ? ` (${inboxCount})` : ''}` },
+    { key: 'words' as const, label: `${s.nav_words}${words.length > 0 ? ` (${words.length})` : ''}` },
     { key: 'all' as const, label: s.nav_all },
   ];
 
@@ -466,6 +470,7 @@ export default function MainWindow() {
         <div className="flex-1 overflow-y-auto">
           {currentPage === 'overview' && <Overview />}
           {currentPage === 'inbox' && <Inbox />}
+          {currentPage === 'words' && <Words />}
           {currentPage === 'all' && <AllItems />}
         </div>
       </main>

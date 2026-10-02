@@ -10,7 +10,7 @@ const PRIORITY_OPTIONS = [1, 2, 3] as const;
 
 export default function AllItems() {
   const {
-    allItems, setPriority, setStatus, deleteItem, updateContent,
+    allItems, setPriority, setStatus, setKind, deleteItem, updateContent,
     tags, itemTags, addTag, removeTag, createAndAddTag,
     search, statusFilter, priorityFilter, tagFilter,
     setSearch, setStatusFilter, setPriorityFilter, setTagFilter, clearFilters,
@@ -146,6 +146,7 @@ export default function AllItems() {
                 item={item}
                 onToggleDone={() => setStatus(item.id, item.status === 'done' ? 'todo' : 'done')}
                 onSetPriority={(p: Priority | null) => setPriority(item.id, p)}
+                onSwitchKind={() => setKind(item.id, 'word')}
                 onDelete={() => deleteItem(item.id)}
                 onUpdateContent={(c) => updateContent(item.id, c)}
                 currentTags={itemTags[item.id] ?? []}

@@ -20,6 +20,7 @@ function buildFrontmatter(item: Item, tags: string[]): string {
   return [
     '---',
     `id: "${item.id}"`,
+    ...(item.kind === 'word' ? ['kind: word'] : []),
     `created: "${item.created_at}"`,
     `updated: "${item.updated_at}"`,
     `status: ${item.status}`,
@@ -35,10 +36,12 @@ export async function exportAllToMarkdown(): Promise<number> {
   const dir = await open({ directory: true, multiple: false, title: '选择导出目录' });
   if (!dir || Array.isArray(dir)) return 0;
 
-  const [items, rawItemTags] = await Promise.all([
+  const [notes, words, rawItemTags] = await Promise.all([
     repo.listItems(),
+    repo.listWords(),
     repo.listItemTagMap(),
   ]);
+  const items = [...notes, ...words];
 
   const itemTagNames: Record<string, string[]> = {};
   for (const row of rawItemTags) {

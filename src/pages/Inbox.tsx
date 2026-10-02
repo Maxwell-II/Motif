@@ -6,7 +6,7 @@ import type { Priority } from '../types';
 
 export default function Inbox() {
   const {
-    inboxItems, setPriority, setStatus, deleteItem,
+    inboxItems, setPriority, setStatus, setKind, deleteItem,
     tags, itemTags, addTag, removeTag, createAndAddTag,
   } = useItemsStore();
   const lang = useSettingsStore((s) => s.lang);
@@ -34,6 +34,7 @@ export default function Inbox() {
               onSetPriority={(p: Priority | null) => setPriority(item.id, p)}
               onSetTodo={() => setStatus(item.id, 'todo')}
               onArchive={() => setStatus(item.id, 'archived')}
+              onSwitchKind={() => setKind(item.id, 'word')}
               onDelete={() => deleteItem(item.id)}
               currentTags={itemTags[item.id] ?? []}
               allTags={tags}

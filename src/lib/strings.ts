@@ -10,6 +10,7 @@ const SAVE_KEY = isMac ? '⌘+Enter' : 'Ctrl+Enter';
 export interface LangStrings {
   nav_overview: string;
   nav_inbox: string;
+  nav_words: string;
   nav_all: string;
   sidebar_tags: string;
   sidebar_export: string;
@@ -43,6 +44,8 @@ export interface LangStrings {
   tag_count: (count: number) => string;
   inbox_title: string;
   inbox_empty: string;
+  words_title: string;
+  words_empty: string;
   allitems_title: string;
   allitems_empty_filter: string;
   allitems_empty: string;
@@ -58,6 +61,8 @@ export interface LangStrings {
   item_btn_todo: string;
   item_btn_archive: string;
   item_btn_delete: string;
+  item_btn_to_word: string;
+  item_btn_to_note: string;
   tag_add_btn: string;
   tag_search_placeholder: string;
   tag_create: (name: string) => string;
@@ -76,6 +81,7 @@ export const STRINGS: Record<Lang, LangStrings> = {
   zh: {
     nav_overview: '概览',
     nav_inbox: '收件箱',
+    nav_words: '单词',
     nav_all: '全部条目',
     sidebar_tags: '标签',
     sidebar_export: '导出全部为 Markdown',
@@ -109,6 +115,8 @@ export const STRINGS: Record<Lang, LangStrings> = {
     tag_count: (count) => `${count} 条`,
     inbox_title: '收件箱',
     inbox_empty: '收件箱已清空',
+    words_title: '单词',
+    words_empty: '还没有单词。捕获时以「w 」开头即记为单词,例如 w discipline',
     allitems_title: '全部条目',
     allitems_empty_filter: '没有符合条件的条目',
     allitems_empty: '还没有任何条目',
@@ -124,6 +132,8 @@ export const STRINGS: Record<Lang, LangStrings> = {
     item_btn_todo: '待办',
     item_btn_archive: '归档',
     item_btn_delete: '删除',
+    item_btn_to_word: '→ 单词',
+    item_btn_to_note: '→ 普通条目',
     tag_add_btn: '+ 标签',
     tag_search_placeholder: '搜索或新建标签…',
     tag_create: (name) => `新建「${name}」`,
@@ -141,6 +151,7 @@ export const STRINGS: Record<Lang, LangStrings> = {
   en: {
     nav_overview: 'Overview',
     nav_inbox: 'Inbox',
+    nav_words: 'Words',
     nav_all: 'All Items',
     sidebar_tags: 'Tags',
     sidebar_export: 'Export All as Markdown',
@@ -174,6 +185,8 @@ export const STRINGS: Record<Lang, LangStrings> = {
     tag_count: (count) => `${count}`,
     inbox_title: 'Inbox',
     inbox_empty: 'Inbox is empty',
+    words_title: 'Words',
+    words_empty: 'No words yet. Start a capture with "w " to save a word, e.g. w discipline',
     allitems_title: 'All Items',
     allitems_empty_filter: 'No matching items',
     allitems_empty: 'No items yet',
@@ -189,6 +202,8 @@ export const STRINGS: Record<Lang, LangStrings> = {
     item_btn_todo: 'Todo',
     item_btn_archive: 'Archive',
     item_btn_delete: 'Delete',
+    item_btn_to_word: '→ Word',
+    item_btn_to_note: '→ Note',
     tag_add_btn: '+ Tag',
     tag_search_placeholder: 'Search or create tag…',
     tag_create: (name) => `Create "${name}"`,

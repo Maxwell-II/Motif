@@ -20,6 +20,7 @@ interface ItemRowProps {
   onSetTodo?: () => void;
   onArchive?: () => void;
   onDelete?: () => void;
+  onSwitchKind?: () => void; // 单词 ↔ 普通条目
   onUpdateContent?: (content: string) => void;
   currentTags?: Tag[];
   allTags?: TagWithCount[];
@@ -35,6 +36,7 @@ export default function ItemRow({
   onSetTodo,
   onArchive,
   onDelete,
+  onSwitchKind,
   onUpdateContent,
   currentTags,
   allTags,
@@ -148,54 +150,63 @@ export default function ItemRow({
               onCreate={(name) => onCreateTag?.(name)}
             />
           )}
-        </div>
-      </div>
+          {/* 操作按钮放在元信息行右侧,不占正文宽度;悬停才显示 */}
+          <div className="ml-auto flex items-center flex-wrap justify-end gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+            {onSetPriority && (
+              <div className="flex gap-0.5">
+                {([1, 2, 3] as Priority[]).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => onSetPriority(item.priority === p ? null : p)}
+                    className={`text-xs px-1.5 py-0.5 rounded border transition-colors ${
+                      item.priority === p
+                        ? PRIORITY_COLOR[p] + ' border-transparent'
+                        : 'border-line text-fg-muted hover:border-line-strong'
+                    }`}
+                  >
+                    P{p}
+                  </button>
+                ))}
+              </div>
+            )}
 
-      <div className="flex-shrink-0 flex items-start gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        {onSetPriority && (
-          <div className="flex gap-0.5">
-            {([1, 2, 3] as Priority[]).map((p) => (
+            {onSetTodo && (
               <button
-                key={p}
-                onClick={() => onSetPriority(item.priority === p ? null : p)}
-                className={`text-xs px-1.5 py-0.5 rounded border transition-colors ${
-                  item.priority === p
-                    ? PRIORITY_COLOR[p] + ' border-transparent'
-                    : 'border-line text-fg-muted hover:border-line-strong'
-                }`}
+                onClick={onSetTodo}
+                className="text-xs px-2 py-0.5 rounded border border-line text-fg-muted hover:border-line-strong hover:text-fg-2 whitespace-nowrap"
               >
-                P{p}
+                {s.item_btn_todo}
               </button>
-            ))}
+            )}
+
+            {onArchive && (
+              <button
+                onClick={onArchive}
+                className="text-xs px-2 py-0.5 rounded border border-line text-fg-muted hover:border-line-strong hover:text-fg-2"
+              >
+                {s.item_btn_archive}
+              </button>
+            )}
+
+            {onSwitchKind && (
+              <button
+                onClick={onSwitchKind}
+                className="text-xs px-2 py-0.5 rounded border border-line text-fg-muted hover:border-line-strong hover:text-fg-2 whitespace-nowrap"
+              >
+                {item.kind === 'word' ? s.item_btn_to_note : s.item_btn_to_word}
+              </button>
+            )}
+
+            {onDelete && (
+              <button
+                onClick={onDelete}
+                className="text-xs px-2 py-0.5 rounded border border-line text-danger/80 hover:border-danger/50 hover:text-danger"
+              >
+                {s.item_btn_delete}
+              </button>
+            )}
           </div>
-        )}
-
-        {onSetTodo && (
-          <button
-            onClick={onSetTodo}
-            className="text-xs px-2 py-0.5 rounded border border-line text-fg-muted hover:border-line-strong hover:text-fg-2 whitespace-nowrap"
-          >
-            {s.item_btn_todo}
-          </button>
-        )}
-
-        {onArchive && (
-          <button
-            onClick={onArchive}
-            className="text-xs px-2 py-0.5 rounded border border-line text-fg-muted hover:border-line-strong hover:text-fg-2"
-          >
-            {s.item_btn_archive}
-          </button>
-        )}
-
-        {onDelete && (
-          <button
-            onClick={onDelete}
-            className="text-xs px-2 py-0.5 rounded border border-line text-danger/80 hover:border-danger/50 hover:text-danger"
-          >
-            {s.item_btn_delete}
-          </button>
-        )}
+        </div>
       </div>
     </div>
   );

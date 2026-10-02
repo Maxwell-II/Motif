@@ -1,15 +1,18 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { Item, Priority, Status, Tag, TagWithCount } from '../types';
+import type { Item, Kind, Priority, Status, Tag, TagWithCount } from '../types';
 import { parse, serialize } from '../lib/frontmatter';
 
 // ── 文件即真相：启动读进内存 → 数组查询 → 原子写文件 ──────────────────────
 //
 // 所有读写收敛在本模块（红线第 3 条）。函数签名保持不变，只换内部实现。
 // item↔tag 关联内嵌在 item 的 tags 字段（tag id 数组），不再有独立 item_tags。
+// 单词（kind: word）与普通条目同在 items/，只有单词才写出 kind 字段；
+// 普通视图一律按 kind !== 'word' 过滤，缺省（无字段）即普通条目。
 
 interface ItemRecord {
   id: string;
   content: string;
+  kind: Kind;
   priority: Priority | null;
   status: Status;
   tags: string[]; // tag id 列表
@@ -48,6 +51,7 @@ function itemToFile(r: ItemRecord): string {
   return serialize(
     {
       id: r.id,
+      ...(r.kind === 'word' ? { kind: 'word' } : {}),
       priority: r.priority === null ? 'null' : String(r.priority),
       status: r.status,
       tags: JSON.stringify(r.tags),
@@ -88,6 +92,7 @@ function parseItem(text: string): ItemRecord | null {
   return {
     id,
     content: body,
+    kind: fm.kind === 'word' ? 'word' : 'note',
     priority,
     status: (fm.status || 'inbox') as Status,
     tags: Array.isArray(tagIds) ? tagIds : [],
@@ -198,6 +203,7 @@ function toItem(r: ItemRecord): Item {
   return {
     id: r.id,
     content: r.content,
+    kind: r.kind,
     priority: r.priority,
     status: r.status,
     created_at: r.created_at,
@@ -208,13 +214,14 @@ function toItem(r: ItemRecord): Item {
 
 // ── Item 操作 ────────────────────────────────────────────────────────────
 
-export async function createItem(content: string): Promise<Item> {
+export async function createItem(content: string, kind: Kind = 'note'): Promise<Item> {
   await ensureLoaded();
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
   const r: ItemRecord = {
     id,
     content,
+    kind,
     priority: null,
     status: 'inbox',
     tags: [],
@@ -254,6 +261,16 @@ export async function setStatus(id: string, status: Status): Promise<void> {
   await persistItem(r);
 }
 
+/** 单词 ↔ 普通条目 手动切换（只改 kind，其余字段保留） */
+export async function setKind(id: string, kind: Kind): Promise<void> {
+  await ensureLoaded();
+  const r = items.get(id);
+  if (!r) return;
+  r.kind = kind;
+  r.updated_at = new Date().toISOString();
+  await persistItem(r);
+}
+
 export async function softDeleteItem(id: string): Promise<void> {
   await ensureLoaded();
   const r = items.get(id);
@@ -273,7 +290,7 @@ export interface ListFilter {
 
 export async function listItems(filter: ListFilter = {}): Promise<Item[]> {
   await ensureLoaded();
-  let arr = [...items.values()].filter((r) => r.deleted_at === null);
+  let arr = [...items.values()].filter((r) => r.deleted_at === null && r.kind !== 'word');
 
   if (filter.status !== undefined) arr = arr.filter((r) => r.status === filter.status);
   if (filter.priority !== undefined) {
@@ -298,6 +315,7 @@ export async function listActiveP1Items(): Promise<Item[]> {
     .filter(
       (r) =>
         r.deleted_at === null &&
+        r.kind !== 'word' &&
         r.priority === 1 &&
         r.status !== 'done' &&
         r.status !== 'archived',
@@ -310,7 +328,7 @@ export async function countInbox(): Promise<number> {
   await ensureLoaded();
   let n = 0;
   for (const r of items.values()) {
-    if (r.deleted_at === null && r.status === 'inbox') n++;
+    if (r.deleted_at === null && r.kind !== 'word' && r.status === 'inbox') n++;
   }
   return n;
 }
@@ -323,11 +341,21 @@ export async function listStale(days: number): Promise<Item[]> {
     .filter(
       (r) =>
         r.deleted_at === null &&
+        r.kind !== 'word' &&
         r.status !== 'done' &&
         r.status !== 'archived' &&
         new Date(r.updated_at).getTime() < cutoff,
     )
     .sort((a, b) => a.updated_at.localeCompare(b.updated_at)) // updated_at ASC
+    .map(toItem);
+}
+
+/** 单词视图：未删除的单词，created_at DESC */
+export async function listWords(): Promise<Item[]> {
+  await ensureLoaded();
+  return [...items.values()]
+    .filter((r) => r.deleted_at === null && r.kind === 'word')
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .map(toItem);
 }
 
@@ -366,7 +394,7 @@ export async function listTags(): Promise<TagWithCount[]> {
   const result = active.map((t) => {
     let count = 0;
     for (const it of items.values()) {
-      if (it.deleted_at === null && it.tags.includes(t.id)) count++;
+      if (it.deleted_at === null && it.kind !== 'word' && it.tags.includes(t.id)) count++;
     }
     return { id: t.id, name: t.name, count };
   });

@@ -1,8 +1,8 @@
 import { create } from 'zustand';
-import type { Item, Priority, Status, Tag, TagWithCount } from '../types';
+import type { Item, Kind, Priority, Status, Tag, TagWithCount } from '../types';
 import * as repo from '../db/repo';
 
-type Page = 'overview' | 'inbox' | 'all';
+type Page = 'overview' | 'inbox' | 'words' | 'all';
 
 interface ItemsState {
   currentPage: Page;
@@ -10,6 +10,8 @@ interface ItemsState {
   inboxItems: Item[];
   allItems: Item[];
   inboxCount: number;
+  // M5.6: 单词
+  words: Item[];
   // M3: tags & filters
   tags: TagWithCount[];
   itemTags: Record<string, Tag[]>;
@@ -23,7 +25,8 @@ interface ItemsState {
   setPage: (page: Page) => void;
   load: () => Promise<void>;
   reloadFromDisk: () => Promise<void>;
-  addItem: (content: string) => Promise<void>;
+  addItem: (content: string, kind?: Kind) => Promise<void>;
+  setKind: (id: string, kind: Kind) => Promise<void>;
   updateContent: (id: string, content: string) => Promise<void>;
   setPriority: (id: string, priority: Priority | null) => Promise<void>;
   setStatus: (id: string, status: Status) => Promise<void>;
@@ -51,6 +54,7 @@ export const useItemsStore = create<ItemsState>((set, get) => ({
   inboxItems: [],
   allItems: [],
   inboxCount: 0,
+  words: [],
   tags: [],
   itemTags: {},
   staleItems: [],
@@ -70,7 +74,7 @@ export const useItemsStore = create<ItemsState>((set, get) => ({
     if (state.tagFilter !== null) allItemsFilter.tagId = state.tagFilter;
     if (state.search) allItemsFilter.search = state.search;
 
-    const [overviewItems, inboxItems, allItems, inboxCount, tags, rawItemTags, staleItems] = await Promise.all([
+    const [overviewItems, inboxItems, allItems, inboxCount, tags, rawItemTags, staleItems, words] = await Promise.all([
       repo.listActiveP1Items(),
       repo.listItems({ status: 'inbox' }),
       repo.listItems(allItemsFilter),
@@ -78,6 +82,7 @@ export const useItemsStore = create<ItemsState>((set, get) => ({
       repo.listTags(),
       repo.listItemTagMap(),
       repo.listStale(14),
+      repo.listWords(),
     ]);
 
     const itemTags: Record<string, Tag[]> = {};
@@ -86,7 +91,7 @@ export const useItemsStore = create<ItemsState>((set, get) => ({
       itemTags[row.item_id].push({ id: row.id, name: row.name });
     }
 
-    set({ overviewItems, inboxItems, allItems, inboxCount, tags, itemTags, staleItems });
+    set({ overviewItems, inboxItems, allItems, inboxCount, tags, itemTags, staleItems, words });
   },
 
   // 从磁盘重新加载（焦点/收到 item-created 时用）。各窗口 repo 缓存独立，
@@ -96,8 +101,13 @@ export const useItemsStore = create<ItemsState>((set, get) => ({
     await get().load();
   },
 
-  addItem: async (content) => {
-    await repo.createItem(content);
+  addItem: async (content, kind) => {
+    await repo.createItem(content, kind);
+    await get().load();
+  },
+
+  setKind: async (id, kind) => {
+    await repo.setKind(id, kind);
     await get().load();
   },
 
