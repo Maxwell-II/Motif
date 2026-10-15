@@ -1817,7 +1817,7 @@ dependencies = [
 
 [[package]]
 name = "motif"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -1826,6 +1826,7 @@ dependencies = [
  "tauri-plugin-autostart",
  "tauri-plugin-dialog",
  "tauri-plugin-global-shortcut",
+ "winreg 0.55.0",
 ]
 
 [[package]]
