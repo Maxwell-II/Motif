@@ -77,15 +77,15 @@ export default function CaptureWindow() {
     // Enter / Shift+Enter 走 textarea 默认换行;Cmd/Ctrl+Enter 保存
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
-      // `w ` 前缀 → 单词;前缀后为空等同空输入
-      const { content, kind } = parseCapture(text);
-      if (!content) {
+      const raw = text.trim();
+      if (!raw) {
         await doHide();
         return;
       }
 
+      const { content } = parseCapture(raw);
       try {
-        await createItem(content, kind);
+        await createItem(content);
         await emit('item-created', null);
       } catch (err) {
         console.error('保存失败', err);

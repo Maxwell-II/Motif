@@ -20,7 +20,6 @@ interface ItemRowProps {
   onSetTodo?: () => void;
   onArchive?: () => void;
   onDelete?: () => void;
-  onSwitchKind?: () => void; // 单词 ↔ 普通条目
   onUpdateContent?: (content: string) => void;
   currentTags?: Tag[];
   allTags?: TagWithCount[];
@@ -36,7 +35,6 @@ export default function ItemRow({
   onSetTodo,
   onArchive,
   onDelete,
-  onSwitchKind,
   onUpdateContent,
   currentTags,
   allTags,
@@ -185,15 +183,6 @@ export default function ItemRow({
                 className="text-xs px-2 py-0.5 rounded border border-line text-fg-muted hover:border-line-strong hover:text-fg-2"
               >
                 {s.item_btn_archive}
-              </button>
-            )}
-
-            {onSwitchKind && (
-              <button
-                onClick={onSwitchKind}
-                className="text-xs px-2 py-0.5 rounded border border-line text-fg-muted hover:border-line-strong hover:text-fg-2 whitespace-nowrap"
-              >
-                {item.kind === 'word' ? s.item_btn_to_note : s.item_btn_to_word}
               </button>
             )}
 
